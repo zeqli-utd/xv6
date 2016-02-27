@@ -98,6 +98,7 @@ extern int sys_unlink(void);
 extern int sys_wait(void);
 extern int sys_write(void);
 extern int sys_uptime(void);
+extern int sys_wolfie(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -121,6 +122,7 @@ static int (*syscalls[])(void) = {
 [SYS_link]    sys_link,
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
+[SYS_wolfie]  sys_wolfie,
 };
 
 void
@@ -128,10 +130,17 @@ syscall(void)
 {
   int num;
 
+  // Get the syscal number from eax
   num = proc->tf->eax;
+    
+  // Check that the syscall number is greater than 0, inside the range of total
+  // syscalls and that a function pointer exists for that syscall number.
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    
+    // Set eax to the return value of the syscall
     proc->tf->eax = syscalls[num]();
   } else {
+    // Else print an error and return -1 to the user program.
     cprintf("%d %s: unknown sys call %d\n",
             proc->pid, proc->name, num);
     proc->tf->eax = -1;

@@ -14,6 +14,8 @@
 #include "file.h"
 #include "fcntl.h"
 
+
+
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
 static int
@@ -439,4 +441,24 @@ sys_pipe(void)
   fd[0] = fd0;
   fd[1] = fd1;
   return 0;
+}
+
+
+
+int
+sys_wolfie(void)
+{
+  int l;
+  int n;
+  char *p;
+  const char* s = ".  ....??.......7O+=IOZ,.. .            \n.  ...NNDD8?..?O8IO8Z$?ZZ+.  .. .       \n.    .DNND8DDD8OOOO~Z$~ZZ$$.=8D8O7.     \n.     .NMNNND88OOOOOOOOOZZZNDDDDDO..    \n.     .:NMM8OOOOOOOOOOOOOZOZDDMMD?.     \n.     . ZMMMMMMDMMNNDNDNN88O88ND$..     \n.     ...Z$OOOM8MMMMMMMM$?DNNNN7 ..     \n.  ...MMMMZZOZDN$MMMMMN7~,D~::I....    .\n. ..8MDMMMZZZODMMNNNMMNNDD8~::MMM,.     \n. .MNNMMMMMMODMMMMMMMMMNN8~::=MM8M8..   \n..DNMMMNMMMMMMMMMNNNNMMMDNNNNNNMDDN8..  \n.NMMMMMMMMMMMZ?NMMNNDMNMMDO8OZ8DDNDO$.  \nOMMMMMMMMMMNZ7??$MMMN==~~ID88NMD8DD8Z?..\n.$NNNMMMMMMM7NI+++?~~~===~:NNNNNNNNN8O..\n....ZNMMMMMN$7II+++=====~~DNNNNNNDND8$..\n......:7MNMNZ$7I???+I?~~~~NMMD8NNDD$$...\n.   . ....NM$NMDMMNNN+MMM~NDDDO$,..  .  \n.  .  ....MN$ZMMMNDN8MMM=NNDD8=......   \n.  ..ODDNDDNOZM?ODDDO:MM:MDD88OOZ$,...  \n...+8DDDDNNND7II+=:.,~$::OOZOOZZZZZZ... \n..8DDDDDDDNNN7?+===~=~~~~ZZZZZZZZZ$$$7~.\n,DDDDDDDDDDDDDO777III7IOOZOZZZZZZ$$O$$$$\nDDDDDDDDDDDDDDDDD8I:88OOOOOZZZZZZ$$$ZZZO\n888DDDDDDDDDDDDD==$$OOOOOOOOOZZZZ$$ZZZZZ\nDDDDDDDDDDDDD888OOOOOOOOOOOOZZZZZZZZOOZZ\n";
+
+  if(argint(1, &n) < 0 || argptr(0, &p, n) < 0)
+    return -1;
+    
+  // Return the number of bytes copied
+  l = 0;
+  while(s[l] != '\0') {l++;}
+  *p = *s;
+  return l;
 }
