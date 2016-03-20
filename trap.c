@@ -77,7 +77,9 @@ trap(struct trapframe *tf)
             cpu->id, tf->cs, tf->eip);
     lapiceoi();
     break;
-   
+  case T_PGFLT:
+    if(rcr2() < KERNBASE && tf->err & FEC_WR)
+      handlepf(tf->err);            // In vm.c
   //PAGEBREAK: 13
   default:
     if(proc == 0 || (tf->cs&3) == 0){

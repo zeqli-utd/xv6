@@ -47,3 +47,19 @@ To run xv6, install the QEMU PC simulators.  To run in QEMU, run "make qemu".
 
 To create a typeset version of the code, run "make xv6.pdf".  This
 requires the "mpage" utility.  See http://www.mesa.nl/pub/mpage/.
+
+
+
+
+I made changes in def.h, kalloc.c, trap.c vm.c finishing all the exercise except the 3 additional unit tests for fork.
+
+Exercie 1: the reference count is placed in the run struct, and helper function krefc, kincrefc, and kdecrefc are used to get count, increment, and decrement in kalloc.c
+
+Exercise 2: In trap.c I added a case to handle page fault using a function called handlepf(tf-err) to catch page fault caused by writing page. Other page faults will be catched and handled by default handler.
+
+Exercise 4: When fork() is called, the child process will get a identical copy of page table of its parent, and it will be mapped to parent's physical page.
+            The implement of page fault handler is located in vm.c as well. Because function walkpgdir is only available inside vm.c. In order to get page table entry and allocate a new page frame for it, the only way I found is to use walkpgdir.
+
+            
+
+ 

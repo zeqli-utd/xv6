@@ -12,9 +12,12 @@
 #define MAXPAGES (PHYSTOP / PGSIZE)
 
 void freerange(void *vstart, void *vend);
+void _freerange(void *vstart, void *vend);
+void _kfree(char *v);
 extern char end[]; // first address after kernel loaded from ELF file
 
 struct run {
+  int ref_count;
   struct run *next;
 };
 
@@ -39,14 +42,23 @@ kinit1(void *vstart, void *vend)
 {
   initlock(&kmem.lock, "kmem");
   kmem.use_lock = 0;
-  freerange(vstart, vend);
+  _freerange(vstart, vend);
 }
 
 void
 kinit2(void *vstart, void *vend)
 {
-  freerange(vstart, vend);
+  _freerange(vstart, vend);
   kmem.use_lock = 1;
+}
+
+void
+_freerange(void *vstart, void *vend)
+{
+  char *p;
+  p = (char*)PGROUNDUP((uint)vstart);
+  for(; p + PGSIZE <= (char*)vend; p += PGSIZE)
+    _kfree(p);
 }
 
 void
@@ -58,7 +70,27 @@ freerange(void *vstart, void *vend)
     kfree(p);
 }
 
-//PAGEBREAK: 21
+
+void
+_kfree(char *v)
+{
+  struct run *r;
+
+  if((uint)v % PGSIZE || v < end || v2p(v) >= PHYSTOP)
+    panic("kfree");
+
+  // Fill with junk to catch dangling refs.
+  memset(v, 1, PGSIZE);
+
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+  r = &kmem.runs[(V2P(v) / PGSIZE)];
+  r->next = kmem.freelist;
+  kmem.freelist = r;
+  if(kmem.use_lock)
+    release(&kmem.lock);
+}
+
 // Free the page of physical memory pointed at by v,
 // which normally should have been returned by a
 // call to kalloc().  (The exception is when
@@ -79,7 +111,45 @@ kfree(char *v)
   r = &kmem.runs[(V2P(v) / PGSIZE)];
   r->next = kmem.freelist;
   kmem.freelist = r;
+    
+  if(r->ref_count != 1)
+    panic("kfree ref count err");// Assert the count is one when a page is freed.
+  
   if(kmem.use_lock)
+    release(&kmem.lock);
+}
+
+int
+krefc(char *v){
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+  struct run *r = &kmem.runs[(V2P(v) / PGSIZE)];
+  if (kmem.use_lock)
+    release(&kmem.lock);
+  return r->ref_count;
+}
+
+// Increase reference count by 1
+void
+kincrefc(char *v)
+{
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+  struct run *r = &kmem.runs[(V2P(v) / PGSIZE)];
+  r->ref_count++;
+  if (kmem.use_lock)
+    release(&kmem.lock);
+}
+
+// Decrese reference count by 1
+void
+kdecrefc(char *v)
+{
+  if(kmem.use_lock)
+    acquire(&kmem.lock);
+  struct run *r = &kmem.runs[(V2P(v) / PGSIZE)];
+  r->ref_count--;
+  if (kmem.use_lock)
     release(&kmem.lock);
 }
 
@@ -96,10 +166,13 @@ kalloc(void)
     acquire(&kmem.lock);
   r = kmem.freelist;
   if(r)
+  {
+    r->ref_count = 1; // set the count to 1 when a page is allocated
     kmem.freelist = r->next;
+  }
   if(kmem.use_lock)
     release(&kmem.lock);
-  rv = P2V((r - kmem.runs) * PGSIZE);
+  rv = r ? P2V((r - kmem.runs) * PGSIZE) : r;       
   return rv;
 }
 

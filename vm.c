@@ -52,7 +52,7 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
   if(*pde & PTE_P){
     pgtab = (pte_t*)p2v(PTE_ADDR(*pde));
   } else {
-    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)
+    if(!alloc || (pgtab = (pte_t*)kalloc()) == 0)  // fail when alloc = 0 OR out of freepage
       return 0;
     // Make sure all those PTE_P bits are zero.
     memset(pgtab, 0, PGSIZE);
@@ -70,17 +70,17 @@ walkpgdir(pde_t *pgdir, const void *va, int alloc)
 static int
 mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
 {
-  char *a, *last;
+  char *a, *last;  
   pte_t *pte;
   
-  a = (char*)PGROUNDDOWN((uint)va);
-  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);
-  for(;;){
-    if((pte = walkpgdir(pgdir, a, 1)) == 0)
+  a = (char*)PGROUNDDOWN((uint)va);  // Obtain the start of the page that the start va belongs to.
+  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);  // Figures out the last pages to map
+  for(;;){  // For each page between start and end.
+    if((pte = walkpgdir(pgdir, a, 1)) == 0)  // Obtain the page table entry pointer that points to the i'th page (using walkpgdir())
       return -1;
-    if(*pte & PTE_P)
+    if(*pte & PTE_P)  // Chech whether pte already exist.
       panic("remap");
-    *pte = pa | perm | PTE_P;
+    *pte = pa | perm | PTE_P; // Config flags
     if(a == last)
       break;
     a += PGSIZE;
@@ -88,6 +88,32 @@ mappages(pde_t *pgdir, void *va, uint size, uint pa, int perm)
   }
   return 0;
 }
+
+// Create PTEs for virtual addresses starting at va that refer to
+// physical addresses starting at pa. va and size might not
+// be page-aligned.
+//static int
+//mappages2(pde_t *pgdir, void *va, uint size, uint pa, int perm)
+//{
+//  char *a, *last;  
+//  pte_t *pte;
+//  int i, j;
+//  
+//  a = (char*)PGROUNDDOWN((uint)va);  // Obtain the start of the page that the start va belongs to.
+//  last = (char*)PGROUNDDOWN(((uint)va) + size - 1);  // Figures out the last pages to map
+//  for(;;){  // For each page between start and end.
+//    if((pte = walkpgdir(pgdir, a, 1)) == 0)  // Obtain the page table entry pointer that points to the i'th page (using walkpgdir())
+//      return -1;
+//    if(*pte & PTE_P)  // Chech whether pte already exist.
+//      panic("remap");
+//    *pte = pa | perm | PTE_P | PTE_COW; // Config flags
+//    if(a == last)
+//      break;
+//    a += PGSIZE;
+//    pa += PGSIZE;
+//  }
+//  return 0;
+//}
 
 // There is one page table per process, plus one that's used when
 // a CPU is not running any process (kpgdir). The kernel uses the
@@ -336,6 +362,43 @@ bad:
   return 0;
 }
 
+
+// Given a parent process's page table, create a copy
+// of it for a child.
+pde_t*
+cowuvm(pde_t *pgdir, uint sz)
+{
+  pde_t *d;    // children process's page table
+  pte_t *pte;  // Page table entry in directory
+  uint pa, i, flags;   // pa - physical address
+
+  cprintf("cowuvm: 375\n");
+  if((d = setupkvm()) == 0)  // set up kernel part of a page table
+    return 0;
+  for(i = 0; i < sz; i += PGSIZE){ // Loop through everthing every time a fork happens
+    // gets the PTE address in pgdir that corresponds to i
+    if((pte = walkpgdir(pgdir, (void *) i, 0)) == 0) // Gets parent pages one by one
+      panic("copyuvm: pte should exist");
+    if(!(*pte & PTE_P))
+      panic("copyuvm: page not present");
+    cprintf("cowuvm: 384, loop at i = %d\n", i);
+    *pte &= ~PTE_W;             // Clear writable flag
+    *pte |= PTE_COW; // Set up copy-on-write flag 
+    pa = PTE_ADDR(*pte);        // Mask out PTE address
+    flags = PTE_FLAGS(*pte);    // Mask out PTE flags
+    if(mappages(d, (void*)i, PGSIZE, pa, flags) < 0)
+      goto bad;
+      
+    invlpg((char*)p2v(pa));     // invalidate TLB entry
+    kincrefc((char*)p2v(pa));   // Increse reference count.
+  }
+  return d;
+
+bad:
+  freevm(d);
+  return 0;
+}
+
 //PAGEBREAK!
 // Map user virtual address to kernel address.
 char*
@@ -375,6 +438,67 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     va = va0 + PGSIZE;
   }
   return 0;
+}
+
+
+void
+handlepf(uint err)
+{
+    uint pa,    // physical address
+    va = rcr2(),         // faulting address
+    flags;         
+    pte_t *pte; // Page table entry in directory
+    char *mem;
+    
+    // If its write fault for user address
+    if(va < KERNBASE && err & FEC_WR){
+      if((pte = walkpgdir(proc->pgdir, (void *) va, 0)) == 0)
+        panic("pte should exist");
+      if(!(*pte & PTE_P))
+        panic("page not present");
+      
+      pa = PTE_ADDR(*pte);
+      // Check fault for an address whose page table includes PTE_COW
+      if(*pte & PTE_COW){
+        // More than one referenc
+        if(krefc(uva2ka(proc->pgdir, (char*)va)) > 1){
+          // Copy the page
+          if((mem = kalloc()) == 0)
+            goto bad;
+            
+          
+          memmove(mem, (char*)p2v(pa), PGSIZE);
+          flags = PTE_FLAGS(*pte);
+          // Replace with a writable copy in local process
+          if(mappages(proc->pgdir, (char*)va, PGSIZE, v2p(mem), flags | PTE_W) < 0) 
+            goto bad;
+          
+          
+          invlpg((char*)p2v(pa));       // Invalidate TLB
+          kdecrefc((char*)p2v(pa));     // Decrease the reference count on orignal page
+        } else if(krefc(uva2ka(proc->pgdir, (char*)va)) == 1){
+          *pte &= ~PTE_COW;             // Remove PTE_COW flag
+          *pte |= PTE_W;                // Restore write permission
+          invlpg((char*)p2v(pa));       // Invalidate TLB
+        } else {
+            goto bad;
+        }            
+      }
+      return;
+    
+      bad:
+      cprintf("pid %d %s: page fault out of memory--kill proc\n", proc->pid, proc->name);
+	  proc->killed = 1;
+	  return;
+    }
+    
+    // In user space, assume process misbehaved.
+//    cprintf("pid %d %s: trap %d err %d (page faults) on cpu %d "
+//            "eip 0x%x addr 0x%x--kill proc\n",
+//            proc->pid, proc->name, tf->trapno, tf->err, cpu->id, tf->eip, 
+//            rcr2());
+//    proc->killed = 1;
+//    break;
 }
 
 //PAGEBREAK!

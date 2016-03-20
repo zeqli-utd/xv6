@@ -173,6 +173,7 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_wolfietest\
+        _pgfaultgen\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
