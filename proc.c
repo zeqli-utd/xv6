@@ -350,6 +350,7 @@ lotticket(void)
     if(c == 0)                              // out of runnable process
       break;
     win = prng() % c + 1;                   // draw a winning ticket
+    cprintf("win(%d), pool(%d)\n",win c);
     sum = 0;
 
     // Find the winning ticket

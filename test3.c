@@ -11,7 +11,7 @@ int stdout = 1;
 // to win. However, it is still lucky enough winning
 // sometimes. So it will eventually finished it's job
 // while constantly competing with other processes.
-// In this case it competes with 30 normal jobs.
+// In this case it competes with 20 normal jobs.
 void
 lotterytest3(void)
 {

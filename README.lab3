@@ -1,64 +1,204 @@
-Description:
-  The nice(int) can change the process priority. The increment range 
-  of nice(int) is -20..19. If nice(-20), the process acquires the 
-  highest priority; if nice(19), the process runs with least priority.
-
-Return Value:
-  If setting nice value succeed, the nice(int) wil return -0, otherwise
-  -1. To get the nice value of a process, a special argument is specified.
-  Passing an argument 120 to nice(int) will allow process return it's 
-  nice value.
-
-  Note that the nice value starts with 100. 100 and 139 are the highest and
-  the lowest respectively. 120 is the base nice value.
-
-Test:
-  The unit test for nice value is in wolfietest.c. What follows are the test
-  codes. To run the wolfietest, one might enter:
-  '$ ./wolfietest' 
-  in xv6. The test will run accordingly.
-
-void
-nicevaltest(void)
-{
-  int unice;
-  int pid;
+********************************************************************
+ Exercise1 - Description:
+   The nice(int) can change the process priority. The increment range 
+   of nice(int) is -20..19. If nice(-20), the process acquires the 
+   highest priority; if nice(19), the process runs with least priority.
  
-  pid = fork();
-  if(pid < 0){
-    printf(stdout, "fork failed\n");
-    exit();
-  }
-  if(pid == 0){      
-    if(nice(19) < 0){     // The niceval of child proc is set to be 139
-      printf(stdout, "Set child nice val failed.\n");
-      exit();
-    }
-    if(nice(120) != 139){ 
-      printf(stdout, "Get child nice val failed.\n");
-      exit();
-    }
-    exit();
-  }
-  wait();
-	
-  if(nice(-20) < 0){     // Nice val was set to 100
-    printf(stdout, "Set nice val failed.\n");
-    exit();
-  }
-  unice = nice(120);
-  if(unice != 100){ 
-    printf(stdout, "Get nice val failed. (%d)\n", unice);
-    exit();
-  }
+ Return Value:
+   If setting nice value succeed, the nice(int) wil return -0, otherwise
+   -1. To get the nice value of a process, a special argument is specified.
+   Passing an argument 120 to nice(int) will allow process return it's 
+   nice value.
+ 
+   Note that the nice value starts with 100. 100 and 139 are the highest and
+   the lowest respectively. 120 is the base nice value.
+ 
+ Test:
+   The unit test for nice value is in wolfietest.c. What follows are the test
+   codes. To run the wolfietest, one might enter:
+   '$ ./wolfietest' 
+   in xv6. The test will run accordingly.
+ 
+*******************************************************************
+ Exercise2 - Description:
+   I add a system call prngtest(void) for psudo-random number generator testing.
+   The notion of verify the result of random number generator is very intuitive.
+   The function prngtest() will simply print out a 40x40 matrix on standard output,
+   followed by the extreme cases(maximum hit and minimum hit). 
+
+   An smaller example as followed:
+   12  9  7 10 15 14  8 18  7  7  7 12 11 10 10 15  9 10 16
+    9 11 10 11 11 11  9 12 10 12 15  8 13 12 10  7  8  7  8
+    6 11  5  7  7 10  8  9 13 11  6 10  9 10 16 12 17 11 11
+   10 11 11  8  7 10 13 14 12  9 11  8 11 16  5 10  6 10  6
+    8 11 13 12 13 11  7 12 10  7  9 10 12  8 16  9  6  4 12
+    7 10 11 10  8 14  8 12 12  8 15 14 10  8  9 12  8 10 10
+    7  8 14 12 14 17 11  9  6  6 12  8 12 12  8  6  9 11 14
+   10 13 11 12  8 10  9  8 10 14 14 10  4 12 17 11 10  9 11
+    5 11  8 15 14 10  7  6 12 11  8  2 12 14  5  6 12  7  6
+    6 11  9 13  7  9 12 10  9 13  8  8 11 13 10  7  5 15 10
+   10 12 15 15  8 10  9 14 10  9  6 11  8 10  7 10  9 10  7
+    9 11  9  5 14  7  7 17 11  7  9 13  9  8 13  9 11 14 10
+   11  9  6  9  6 14  8 16 10 12 14 15  9  9 15 14 14 10  7
+   12  8 15 12 10  6 12  5 13 14  9 10  9  7 12 15 10  9 12
+    6  7 13 10  9  5 14  5  7  7  9 14  9 10 10  2 15 13  8
+    8 11  8 10  8 17  9  6 12  9 10  8  5  7  8 10 13  8 11
+   11 12  6  7 10  9 11  8 10 12  3  8 14  9 10  7  4 12  9
+    7 11 15 10  8  8 11 19 14 19  7  9 12 11 10  6  6  7 13
+   13  6  8  9 11 13 10 12  7  6 11  6  7 10 10  9  9  5 10
+   15 13  5 11 12 13  9  9 11  7 12 10 19 10 12 12 13  6  6
+   11  7 12 13 10 11 13 13 10 11 10 13 14 19 14 12 10 16 10
+    8  4  9  8 10  8 12 11  8  7 11  8  8 10 13  8  8 12 12
+   11 13  5 11 11 13  9 10  9 14 11 14  8  6 12 10 11 13  8
+
+    max hit: 20
+    min hit: 1
+   Looking into the matrix, it can be verified whether the hits uniformly distributed.
   
-  if(nice(-21) == 0){
-  	printf(stdout, "error: niceval less than -20 %d\n", nice(120));
-  	exit();
-  }
-  if(nice(20) == 0){
-  	printf(stdout, "error: niceval greater than 19 %d\n", nice(120));
-  	exit();
-  }
-  printf(stdout, "niceval test ok\n");
-}
+  Test:
+    run ./wolfietest
+*******************************************************************
+ Exercise3 - Description: 
+   In lottery scheduling I map each process's nice value to 
+   corresponding tickets. Nicevalue=139 -> 1 ticket, nice 
+   value 100 -> 40 tickets. 
+
+   - Nice value mapping:
+   The formular is 41-(p->niceval - 99).
+
+   - lottery[NPROC]:
+   The number of tickets is stored in an array called
+   lottery[] with a length of NPROC, that is the maximum 
+   amount of processes allowed in xv6. The index corresponds
+   to the process in ptable.
+
+   - c: Ticket Pool
+   The variable c refers to the total amount of tickets currently
+   At each iteration in for(;;) in lotticket(), the loop first maintains
+   the lottery table -- assigning tickets to new runnable process, and
+   recycling non-runnable's tickets. 
+
+   When the ticket pool c is not 0, the winner is automatically
+   drawed and the winning process gets the cpu time slice.
+   When the ticket pool is empty, the this scheduling loop ends
+   and release the process table.
+  
+ Edge case (What if?) :
+   1. No process scheduled. -> The ticket pool c == 0, jump out the scheduling
+      loop and release ptable.lock
+   2. Nice value was changed wile looping.  -> Every iteration the lottery ticket
+      function will check if the nice value and tickets correctly matched and 
+      make adjustment accordingly.
+   3. Potential starvation(a process only has 1 ticket) -> No matter how 
+      few the tickets a process has, there are chances to win. As shown on
+      test3.c
+
+ Testing - Excercise 4:
+   There are serveral test files:
+   
+   1. wolfietest.c - psudo-random number generator and nice value system call
+
+   // test1.c test2.c test3.c calculate and print first 200 prime number in
+   // 3 different niced child process.
+   // For instance:
+   // PID(39) (20 tickets) [181] -> 1087
+   // PID(39) (20 tickets) [182] -> 1091
+   // PID(39) (20 tickets) [183] -> 1093
+   // PID(39) (20 tickets) [184] -> 1097
+   // PID(39) (20 tickets) [185] -> 1103
+
+   // The PID followed a parenthesized child process pid.
+   // and the corresponding lottery tickets. The prime number
+   // counter is in bracket ranging from 1 to 200.
+   // To the right most is the calculated prime number.
+
+
+   2. test1.c - priority test. 
+      
+      The first child process was assigned the highest
+      priority which cause it receive 40 tickets. The other two keep default 
+      tickets, both are 20 tickets. The outcome shows that the 40-tickets
+      process always finished its job first, that verify the lottery ticket
+      scheduling.
+
+   3. test2.c - dynamic test. 
+      
+      Three child processes cproc[0], cproc[1] and cproc[2].
+      Same as test 1, it counts from 1 to 200 with the 200th prime number 1230.
+      Instead of keep the cproc[0] with 40 tickets, when first 100 prime number
+      calculated we manually decrease the cproc[0] tickets dramatically to 1.
+      This leads to an outcome of cproc[0] finished slowest.
+
+   4. test3.c - starvation test. 
+
+      In this case we have 20 child processes. The 
+      child process cproc[0] was set to 1 while other 19 processes keep 20 tickets
+      in hand. So the process cproc[0] bears little chances to win in each draw. 
+      However, it is still lucky enough to win sometimes in order to finishe it's
+      job while constantly competing with other processes.
+
+      After cproc[0] finished and returned, the rest of processed were killed.
+
+   5. test4.c - dynamically switching scheduling policy. 
+
+      salgo - set algorithm system call
+              salgo(0) to round-robin and return 0
+              salgo(1) to lottery scheduling and return 1
+              otherwise return error code -1
+      
+      The behavior of three child processes resembles the test1.c with an exception
+      that it switches to round-robin at the entry point of the test function. (By
+      calling )
+
+      The outcome shows that sometimes the process with 40 tickets will be scheduled
+      at the very end. It gives a even fairness to every process. 
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
