@@ -89,3 +89,45 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int 
+sys_nice(void)
+{
+  int v;
+  if(argint(0, &v) < 0)
+      return -1;
+  if(v == 0){
+    return proc->niceval;
+  }
+  else if(-20 <= v && v <= 19)
+    proc->niceval = 120 + v;
+  else{
+    return -1;
+  }
+  return 0;
+}
+
+void
+sys_yield(void)
+{
+  yield();
+}
+
+int
+sys_salgo(void)
+{
+  int v;
+  if(argint(0, &v) < 0)
+      return -1;
+  if(v == 0){ // Round Robin
+    setpolicy(0);
+    return 0;
+  }
+  else if(1){
+    setpolicy(1);
+    return 1;
+  }
+  else{
+    return -1;
+  }
+}

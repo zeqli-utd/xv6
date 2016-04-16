@@ -1,0 +1,64 @@
+Description:
+  The nice(int) can change the process priority. The increment range 
+  of nice(int) is -20..19. If nice(-20), the process acquires the 
+  highest priority; if nice(19), the process runs with least priority.
+
+Return Value:
+  If setting nice value succeed, the nice(int) wil return -0, otherwise
+  -1. To get the nice value of a process, a special argument is specified.
+  Passing an argument 120 to nice(int) will allow process return it's 
+  nice value.
+
+  Note that the nice value starts with 100. 100 and 139 are the highest and
+  the lowest respectively. 120 is the base nice value.
+
+Test:
+  The unit test for nice value is in wolfietest.c. What follows are the test
+  codes. To run the wolfietest, one might enter:
+  '$ ./wolfietest' 
+  in xv6. The test will run accordingly.
+
+void
+nicevaltest(void)
+{
+  int unice;
+  int pid;
+ 
+  pid = fork();
+  if(pid < 0){
+    printf(stdout, "fork failed\n");
+    exit();
+  }
+  if(pid == 0){      
+    if(nice(19) < 0){     // The niceval of child proc is set to be 139
+      printf(stdout, "Set child nice val failed.\n");
+      exit();
+    }
+    if(nice(120) != 139){ 
+      printf(stdout, "Get child nice val failed.\n");
+      exit();
+    }
+    exit();
+  }
+  wait();
+	
+  if(nice(-20) < 0){     // Nice val was set to 100
+    printf(stdout, "Set nice val failed.\n");
+    exit();
+  }
+  unice = nice(120);
+  if(unice != 100){ 
+    printf(stdout, "Get nice val failed. (%d)\n", unice);
+    exit();
+  }
+  
+  if(nice(-21) == 0){
+  	printf(stdout, "error: niceval less than -20 %d\n", nice(120));
+  	exit();
+  }
+  if(nice(20) == 0){
+  	printf(stdout, "error: niceval greater than 19 %d\n", nice(120));
+  	exit();
+  }
+  printf(stdout, "niceval test ok\n");
+}

@@ -448,17 +448,21 @@ sys_pipe(void)
 int
 sys_wolfie(void)
 {
-  int l;
   int n;
   char *p;
-  const char* s = ".  ....??.......7O+=IOZ,.. .            \n.  ...NNDD8?..?O8IO8Z$?ZZ+.  .. .       \n.    .DNND8DDD8OOOO~Z$~ZZ$$.=8D8O7.     \n.     .NMNNND88OOOOOOOOOZZZNDDDDDO..    \n.     .:NMM8OOOOOOOOOOOOOZOZDDMMD?.     \n.     . ZMMMMMMDMMNNDNDNN88O88ND$..     \n.     ...Z$OOOM8MMMMMMMM$?DNNNN7 ..     \n.  ...MMMMZZOZDN$MMMMMN7~,D~::I....    .\n. ..8MDMMMZZZODMMNNNMMNNDD8~::MMM,.     \n. .MNNMMMMMMODMMMMMMMMMNN8~::=MM8M8..   \n..DNMMMNMMMMMMMMMNNNNMMMDNNNNNNMDDN8..  \n.NMMMMMMMMMMMZ?NMMNNDMNMMDO8OZ8DDNDO$.  \nOMMMMMMMMMMNZ7??$MMMN==~~ID88NMD8DD8Z?..\n.$NNNMMMMMMM7NI+++?~~~===~:NNNNNNNNN8O..\n....ZNMMMMMN$7II+++=====~~DNNNNNNDND8$..\n......:7MNMNZ$7I???+I?~~~~NMMD8NNDD$$...\n.   . ....NM$NMDMMNNN+MMM~NDDDO$,..  .  \n.  .  ....MN$ZMMMNDN8MMM=NNDD8=......   \n.  ..ODDNDDNOZM?ODDDO:MM:MDD88OOZ$,...  \n...+8DDDDNNND7II+=:.,~$::OOZOOZZZZZZ... \n..8DDDDDDDNNN7?+===~=~~~~ZZZZZZZZZ$$$7~.\n,DDDDDDDDDDDDDO777III7IOOZOZZZZZZ$$O$$$$\nDDDDDDDDDDDDDDDDD8I:88OOOOOZZZZZZ$$$ZZZO\n888DDDDDDDDDDDDD==$$OOOOOOOOOZZZZ$$ZZZZZ\nDDDDDDDDDDDDD888OOOOOOOOOOOOZZZZZZZZOOZZ\n";
 
-  if(argint(1, &n) < 0 || argptr(0, &p, n) < 0)
+
+  const char* s = "ZZ$$$$Z=8?==$77$::,++O8DD$$$$$~.........\n$7======8NNN==========NND$$$$$:.........\nO8DDDDDZ$ZMOO88DDDD$?$=.O77$$$~.........\nOOOOOOZZ$$DI7IONDD8Z8.DOOO?$$$,.........\nZZOZZZOZ$ZDNNNZOZZZOZZZ+==8II$,.........\nOZO$ZZZZ$OZDD8Z88DZDOIODOO$8O$..........\nOZZZZZZ88Z88N?7NNI=,+.O8DD8ON7+::::,$$$$\nZZ$II?7888DNM7I??+~,,M=DDOZ$$$$$$$$ZZZ$$\nZ8888888DNNZI7II8NN7MM.$+$$$$$$$$$$$ZZ$$\n888888NN~+ZMNI8MMDOID.Z=I++=$Z$$$$$$$$$$\nOO8OO8N7ONDI$:OMM++=O.=I??+=+?$$$$$$$$$$\n=IZOONDOO8N8OID~,,=~~,??+++==.+$$$$$$$$$\nZOOZNN8MDD8DZ?D877777?+.I+++=?+ZZZZZZZZZ\nOODONNINNDDNDDDO8$=O,7I.OZI??I+$$$$$$$ZO\n?$88NNDNMMMDDN8Z$~$88O7.=:..I7?$$$$$ZZZZ\n8ZOONDNND8Z888877IOOO:~ZOZ$IOZ..:$ZZZZZZ\nZZZONN+++$$DDD8Z?II77O.7777?8I.:::,ZZ$ZO\n";
+  if(argstr(0, &p) < 0 || argint(1, &n) < 0)
     return -1;
     
+  int sz = strlen(s);
+  // If the buffer is too small
+  if(n < sz || !p)
+    return -1;
+
   // Return the number of bytes copied
-  l = 0;
-  while(s[l] != '\0') {l++;}
-  *p = *s;
-  return l;
+  strncpy(p, s, sz);
+  return sz;
 }
+
